@@ -1,0 +1,7 @@
+eng.*
+dev
+train
+test
+*.txt
+__pycache__/
+*.pl*
