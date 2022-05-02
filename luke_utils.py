@@ -326,28 +326,33 @@ def train_loop(params, model, tokenizer, test_examples, tag2i):
             optimizer.step()
             
                 
-            #   epoch_loss += loss.item()
+        #   epoch_loss += loss.item()
         # print(epoch_loss/len(test_examples))
 
 def eval(luke_model, tokenizer, test_examples, test_documents):
     batch_size = 2
     all_logits = []
-
-    for batch_start_idx in trange(0, len(test_examples), batch_size):
+    total_batches = len(range(0, len(test_examples), batch_size))
+    print("Calculating logits....Total batches =", len(range(0, len(test_examples), batch_size)))
+    idx = 0
+    for batch_start_idx in tqdm(range(0, len(test_examples), batch_size)):
         batch_examples = test_examples[batch_start_idx:batch_start_idx + batch_size]
         texts = [example["text"] for example in batch_examples]
         entity_spans = [example["entity_spans"] for example in batch_examples]
-
         inputs = tokenizer(texts, entity_spans=entity_spans, return_tensors="pt", padding=True)
         inputs = inputs.to("cuda")
         with torch.no_grad():
             outputs = luke_model(inputs)
+        #if idx % 10 == 0:
+          #print("{:.2f}% completed".format(idx/total_batches * 100))
+        idx = idx + 1
         all_logits.extend(outputs.logits.tolist())
-
     final_labels = [label for document in test_documents for label in document["labels"]]
-
     final_predictions = []
-    for example_index, example in enumerate(test_examples):
+    total_example_size = len(test_examples)
+    print("Computing predictions....Total Examples =", len(test_examples))
+    idx = 0
+    for example_index, example in tqdm(enumerate(test_examples)):
         logits = all_logits[example_index]
         max_logits = np.max(logits, axis=1)
         max_indices = np.argmax(logits, axis=1)
@@ -356,7 +361,9 @@ def eval(luke_model, tokenizer, test_examples, test_documents):
         for logit, index, span in zip(max_logits, max_indices, original_spans):
             if index != 0:  # the span is not NIL
                 predictions.append((logit, span, luke_model.model.config.id2label[index]))
-
+        #if idx % 10 == 0:
+          #print("{:.2f}% completed".format(idx/len(test_examples) * 100))
+        idx = idx + 1
         # construct an IOB2 label sequence
         predicted_sequence = ["O"] * len(example["words"])
         for _, span, label in sorted(predictions, key=lambda o: o[0], reverse=True):
@@ -364,11 +371,10 @@ def eval(luke_model, tokenizer, test_examples, test_documents):
                 predicted_sequence[span[0]] = "B-" + label
                 if span[1] - span[0] > 1:
                     predicted_sequence[span[0] + 1 : span[1]] = ["I-" + label] * (span[1] - span[0] - 1)
-
         final_predictions += predicted_sequence
-
-        print(seqeval.metrics.classification_report([final_labels], [final_predictions], digits=4))
-
+    trunc_labels = final_labels[0:len(final_predictions)]
+    print(len(final_predictions))
+    print(seqeval.metrics.classification_report([trunc_labels], [final_predictions], digits=4))
 
 def main():
     (sentences_train, tags_train) = read_conll_format("train")

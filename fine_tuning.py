@@ -1,10 +1,12 @@
 from lib2to3.pgen2 import token
-from transformers import LukeTokenizer
+from transformers import LukeTokenizer, ReformerConfig
 from torch.utils.data import Dataset, DataLoader
 import torch
 from transformers import LukeForEntitySpanClassification, AdamW
 import pytorch_lightning as pl
+from luke_models import LukeReformerForEntitySpanClassification
 from luke_utils import compute_labels
+import pickle
 
 # def pad_tensor(vec, pad, dim):
 #     """
@@ -119,14 +121,21 @@ class NERDataset(Dataset):
 
         return tokenized_batch_examples
 
+
 class LUKE(pl.LightningModule):
 
-    def __init__(self, train_ds, val_ds, test_ds):
+    def __init__(self, train_ds, val_ds, test_ds, model_type=LukeForEntitySpanClassification):
         super().__init__()
         self.train_ds = train_ds
         self.val_ds = val_ds
         self.test_ds = test_ds
-        self.model = LukeForEntitySpanClassification.from_pretrained("studio-ousia/luke-large-finetuned-conll-2003").to("cuda")
+        if model_type == LukeForEntitySpanClassification:
+            self.model = model_type.from_pretrained("studio-ousia/luke-large-finetuned-conll-2003").to("cuda")
+        elif model_type == LukeReformerForEntitySpanClassification:
+            config = pickle.load(open("luke_config.p", "rb"))
+            self.model = model_type(config, ReformerConfig()).to("cuda")
+        else:
+            assert(0==1)
 
     def forward(self, model_dict):     
         # outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, entity_ids=entity_ids, 
@@ -175,7 +184,7 @@ class LUKE(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = AdamW(self.parameters(), lr=5e-5)
+        optimizer = AdamW(self.parameters(), lr=1e-5)
         return optimizer
 
     def train_dataloader(self):
@@ -187,3 +196,4 @@ class LUKE(pl.LightningModule):
 
     def test_dataloader(self):
         return DataLoader(self.test_ds, batch_size=1, collate_fn=PadCollate(dim=0))
+

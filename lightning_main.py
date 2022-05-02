@@ -6,6 +6,8 @@ from fine_tuning import LUKE, NERDataset
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import EarlyStopping
+from luke_models import LukeReformerForEntitySpanClassification
+import pickle
 
 def main():
     
@@ -25,8 +27,8 @@ def main():
     val_ds = NERDataset(val_examples, tokenizer, tag2i)
     test_ds = NERDataset(test_examples, tokenizer, tag2i)
 
-
-    model = LUKE(train_ds, val_ds, test_ds)
+    model = LUKE(train_ds, val_ds, test_ds, model_type=LukeReformerForEntitySpanClassification)
+    # model = LUKE(train_ds, val_ds, test_ds)
 
     # wandb_logger = WandbLogger(name='luke-first-run-12000-articles-bis', project='LUKE')
     # for early stopping, see https://pytorch-lightning.readthedocs.io/en/1.0.0/early_stopping.html?highlight=early%20stopping
@@ -38,8 +40,15 @@ def main():
     #     mode='min'
     # )
 
-    # trainer = Trainer(gpus=1)#, logger=wandb_logger, callbacks=[EarlyStopping(monitor='validation_loss')])
-    # trainer.fit(model)
+    trainer = Trainer(gpus=1)#, logger=wandb_logger, callbacks=[EarlyStopping(monitor='validation_loss')])
+    trainer.fit(model)
+
+    # model = LukeForEntitySpanClassification.from_pretrained("studio-ousia/luke-large-finetuned-conll-2003")
+    # model.eval()
+    # model.to("cuda")
+
+    # Load the tokenizer
+    # tokenizer = LukeTokenizer.from_pretrained("studio-ousia/luke-large-finetuned-conll-2003")
     
     eval(model, tokenizer, test_examples, test_documents)
 
