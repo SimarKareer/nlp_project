@@ -1,4 +1,4 @@
-from luke_utils import read_GloVe, load_documents, load_examples, train_loop, read_conll_format
+from luke_utils import read_GloVe, load_documents, load_examples, train_loop, read_conll_format, eval
 from collections import Counter
 from transformers import LukeTokenizer, LukeConfig, LukeForEntitySpanClassification
 from pytorch_memlab import LineProfiler
@@ -28,18 +28,20 @@ def main():
 
     model = LUKE(train_ds, val_ds, test_ds)
 
-# wandb_logger = WandbLogger(name='luke-first-run-12000-articles-bis', project='LUKE')
-# for early stopping, see https://pytorch-lightning.readthedocs.io/en/1.0.0/early_stopping.html?highlight=early%20stopping
-# early_stop_callback = EarlyStopping(
-#     monitor='val_loss',
-#     patience=2,
-#     strict=False,
-#     verbose=False,
-#     mode='min'
-# )
+    # wandb_logger = WandbLogger(name='luke-first-run-12000-articles-bis', project='LUKE')
+    # for early stopping, see https://pytorch-lightning.readthedocs.io/en/1.0.0/early_stopping.html?highlight=early%20stopping
+    # early_stop_callback = EarlyStopping(
+    #     monitor='val_loss',
+    #     patience=2,
+    #     strict=False,
+    #     verbose=False,
+    #     mode='min'
+    # )
 
-    trainer = Trainer(gpus=1)#, logger=wandb_logger, callbacks=[EarlyStopping(monitor='validation_loss')])
-    trainer.fit(model)
+    # trainer = Trainer(gpus=1)#, logger=wandb_logger, callbacks=[EarlyStopping(monitor='validation_loss')])
+    # trainer.fit(model)
+    
+    eval(model, tokenizer, test_examples, test_documents)
 
 
 

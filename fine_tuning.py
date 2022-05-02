@@ -58,9 +58,9 @@ class PadCollate:
 
         for key in batch[0].keys():
             list_of_key = [i[key] for i in batch]
-            print("First two shapes: ", list_of_key[0].shape, list_of_key[1].shape)
+            # print("First two shapes: ", list_of_key[0].shape, list_of_key[1].shape)
             padded = torch.nn.utils.rnn.pad_sequence(list_of_key, batch_first=True).type(torch.LongTensor).cuda()
-            print("Key: ", key, "padded shape: ", padded.shape)
+            # print("Key: ", key, "padded shape: ", padded.shape)
             td_batch[key] = padded
         
         return td_batch
@@ -109,11 +109,11 @@ class NERDataset(Dataset):
         # with torch.no_grad():
         tokenized_batch_examples = self.tokenizer(texts, entity_spans=entity_spans, return_tensors="pt", padding=True).to(self.device_str)
         e_labels_padded = e_labels.long().to(self.device_str) #torch.nn.utils.rnn.pad_sequence(e_labels, batch_first=True).type(torch.LongTensor).to(self.device_str)
-        tokenized_batch_examples["label"] = e_labels_padded
+        tokenized_batch_examples["labels"] = e_labels_padded
 
         for key in tokenized_batch_examples.keys():
             # print("P1: ", key, tokenized_batch_examples[key].shape)
-            if key != "label":
+            if key != "labels":
                 assert(tokenized_batch_examples[key].shape[0] == 1)
                 tokenized_batch_examples[key] = tokenized_batch_examples[key][0]
 
@@ -136,9 +136,9 @@ class LUKE(pl.LightningModule):
         return self.model(**model_dict)
     
     def common_step(self, batch, batch_idx):
-        labels = batch['label']
-        del batch['label']
-        print("batch: ", batch)
+        # labels = batch['labels']
+        # del batch['label']
+        # print("batch: ", batch)
         outputs = self(batch)
         logits = outputs.logits
 
@@ -179,11 +179,11 @@ class LUKE(pl.LightningModule):
         return optimizer
 
     def train_dataloader(self):
-        return DataLoader(self.train_ds, batch_size=4, shuffle=True, collate_fn=PadCollate(dim=0))
+        return DataLoader(self.train_ds, batch_size=1, shuffle=True, collate_fn=PadCollate(dim=0))
     #     return train_dataloader
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, batch_size=2, collate_fn=PadCollate(dim=0))
+        return DataLoader(self.val_ds, batch_size=1, collate_fn=PadCollate(dim=0))
 
     def test_dataloader(self):
-        return DataLoader(self.test_ds, batch_size=2, collate_fn=PadCollate(dim=0))
+        return DataLoader(self.test_ds, batch_size=1, collate_fn=PadCollate(dim=0))
