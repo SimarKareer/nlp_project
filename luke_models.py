@@ -151,7 +151,13 @@ class LukeReformer(LukeModel):
         #     return_dict=return_dict,
         # )
 
-        encoder_outputs = self.reformer(
+
+        print("Word embedding output shape: ", word_embedding_output.shape)
+        print("head_mask shape: ", head_mask)
+        print("Attention Mask shape: ", attention_mask.shape)
+        print("Output hidden shape: ", output_hidden_states)
+        print("Output Attn shape: ", output_attentions)
+        encoder_outputs = self.reformer.encoder(
             hidden_states=word_embedding_output,
             head_mask=head_mask,
             attention_mask=attention_mask,
